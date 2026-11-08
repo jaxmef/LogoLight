@@ -79,7 +79,8 @@ build/logoctl status             # read-only
 build/logoctl custom 40          # 0-100, same scale as the app
 build/logoctl off
 build/logoctl default
-build/logoctl music 30 --max 50  # follow system audio for 30 s, then restore Default; --test for a synthetic beat
+build/logoctl music 30 --max 50  # follow system audio for 30 s, then restore Default
+build/logoctl music 10 --test    # synthetic beat, no audio permission needed
 ```
 
 `custom` and `off` stay in effect until `default`, also across restarts.
@@ -87,7 +88,7 @@ build/logoctl music 30 --max 50  # follow system audio for 30 s, then restore De
 ### Releases
 
 ```sh
-SIGN_IDENTITY="LogoLight Code Signing" ./release.sh 1.0.0   # → dist/: zip, dmg, SHA256SUMS.txt
+SIGN_IDENTITY="LogoLight Code Signing" ./release.sh 1.0.0   # → dist/
 ```
 
 Sign every release with the same self-signed certificate (Keychain Access › Certificate Assistant › Create a
