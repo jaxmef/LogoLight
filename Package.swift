@@ -3,7 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "LogoLight",
-    platforms: [.macOS("27.2")],
+    platforms: [.macOS("27.0")],
     products: [
         .library(name: "LogoCore", targets: ["LogoCore"]),
         .executable(name: "logoctl", targets: ["logoctl"]),
