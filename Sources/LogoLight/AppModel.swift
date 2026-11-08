@@ -4,6 +4,7 @@ import IOKit.pwr_mgt
 import Foundation
 import os
 import LogoCore
+import LogoMusic
 
 final class AppModel: ObservableObject {
     enum Choice: String, CaseIterable, Identifiable {
@@ -17,20 +18,18 @@ final class AppModel: ObservableObject {
     static let shared = AppModel()
 
     @Published var choice: Choice { didSet { if choice != oldValue { save(); apply() } } }
-    @Published var brightness: Double {
+    /// 0–100, for Custom and as the peak in Music.
+    @Published var percent: Double {
         didSet {
-            guard brightness != oldValue else { return }
+            guard percent != oldValue else { return }
             save()
             if choice == .custom { apply() }
-            follower?.maxBrightness = brightness
+            follower?.peakPercent = percent
         }
     }
     @Published private(set) var lastError: String?
     private(set) var isSupported = true
 
-    static let minBrightness = LogoController.minBrightness
-
-    var brightnessPercent: Int { Int(LogoController.percent(forBrightness: brightness).rounded()) }
     @Published private(set) var musicHint: String?
 
     private var logo: LogoController?
@@ -43,7 +42,7 @@ final class AppModel: ObservableObject {
 
     private init() {
         choice = Choice(rawValue: defaults.string(forKey: "choice") ?? "") ?? .system
-        brightness = min(max(defaults.object(forKey: "brightness") as? Double ?? 0.5, Self.minBrightness), 1)
+        percent = min(max(defaults.object(forKey: "percent") as? Double ?? 50, 0), 100)
         do {
             logo = try LogoController()
         } catch {
@@ -60,7 +59,7 @@ final class AppModel: ObservableObject {
 
     private func save() {
         defaults.set(choice.rawValue, forKey: "choice")
-        defaults.set(brightness, forKey: "brightness")
+        defaults.set(percent, forKey: "percent")
     }
 
     func apply() {
@@ -71,11 +70,11 @@ final class AppModel: ObservableObject {
             case .system: try logo.setDefault()
             case .off: try logo.setOff()
             case .custom:
-                if !screensAsleep && LogoController.clamshellClosed() != true {
-                    try logo.setCustom(brightness: brightness)
+                if !screensAsleep && LogoController.isLidClosed() != true {
+                    try logo.setBrightness(percent: percent)
                 }
             case .music:
-                if !screensAsleep && LogoController.clamshellClosed() != true { try startMusic() }
+                if !screensAsleep && LogoController.isLidClosed() != true { try startMusic() }
             }
             lastError = nil
         } catch {
@@ -95,7 +94,7 @@ final class AppModel: ObservableObject {
     private func startMusic() throws {
         guard follower == nil, let logo else { return }
         let source: AudioLevelSource = testBeat ? TestBeatSource() : SystemAudioTap()
-        let f = MusicFollower(logo: logo, source: source, maxBrightness: brightness)
+        let f = MusicFollower(logo: logo, source: source, peakPercent: percent)
         f.onError = { [weak self] err in DispatchQueue.main.async { self?.report(err, Self.changeFailed) } }
         try f.start()
         follower = f
@@ -112,14 +111,14 @@ final class AppModel: ObservableObject {
 
     private func reassert() {
         defer { refreshStatus() }
-        guard let logo, !screensAsleep, !outputPaused, LogoController.clamshellClosed() != true else { return }
+        guard let logo, !screensAsleep, !outputPaused, LogoController.isLidClosed() != true else { return }
         switch choice {
-        case .custom where !logo.isApplied(brightness: brightness): apply()
-        case .off where logo.cb.mode != 0: apply()
+        case .custom where !logo.isShowing(percent: percent): apply()
+        case .off where logo.mode == .system: apply()
         case .music:
             if follower == nil { apply() }
             // macOS took the logo back, or an earlier resume failed.
-            else if follower?.isPaused == true || logo.cb.mode != 0 || logo.pwm.state()?.enabled != true {
+            else if follower?.isPaused == true || logo.mode != .custom {
                 follower?.setPaused(false)
             }
         default: break
@@ -164,7 +163,7 @@ final class AppModel: ObservableObject {
     private func resumeOutput(_ why: String, after delay: Double) {
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
             guard let self else { return }
-            guard !self.screensAsleep, LogoController.clamshellClosed() != true else { return }
+            guard !self.screensAsleep, LogoController.isLidClosed() != true else { return }
             self.outputPaused = false
             Self.log.notice("resume (\(why, privacy: .public))")
             if self.choice == .music, let f = self.follower { f.setPaused(false) } else { self.reassert() }

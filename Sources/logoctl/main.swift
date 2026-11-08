@@ -1,6 +1,7 @@
 import CoreGraphics
 import Foundation
 import LogoCore
+import LogoMusic
 
 let usage = """
 usage: logoctl status                 show mode, PWM state and CoreBrightness's light-emitter state (read-only)
@@ -15,12 +16,6 @@ usage: logoctl status                 show mode, PWM state and CoreBrightness's 
 func fail(_ message: String) -> Never {
     FileHandle.standardError.write("logoctl: \(message)\n".data(using: .utf8)!)
     exit(1)
-}
-
-func fmt(_ v: Any?) -> String {
-    if let n = v as? NSNumber { return String(format: "%.1f", n.doubleValue) }
-    if let s = v as? String, let d = Double(s) { return String(format: "%.1f", d) }
-    return "-"
 }
 
 final class StopFlag: @unchecked Sendable {
@@ -42,7 +37,7 @@ func installStopSignals(_ flag: StopFlag) -> [DispatchSourceSignal] {
 
 /// In mode 0 macOS doesn't turn the logo off for lid close or display sleep, so we do.
 func shouldBeDark() -> Bool {
-    LogoController.clamshellClosed() == true || CGDisplayIsAsleep(CGMainDisplayID()) != 0
+    LogoController.isLidClosed() == true || CGDisplayIsAsleep(CGMainDisplayID()) != 0
 }
 
 struct MusicOptions {
@@ -79,7 +74,7 @@ func runMusic(_ logo: LogoController, _ opts: MusicOptions) throws {
     defer { signalSources.forEach { $0.cancel() } }
 
     let source: AudioLevelSource = opts.test ? TestBeatSource() : SystemAudioTap()
-    let follower = MusicFollower(logo: logo, source: source, maxBrightness: LogoController.brightness(forPercent: opts.maxPercent))
+    let follower = MusicFollower(logo: logo, source: source, peakPercent: opts.maxPercent)
     follower.onError = { FileHandle.standardError.write("logoctl: write error \($0)\n".data(using: .utf8)!) }
     defer {
         follower.stop()
@@ -109,9 +104,7 @@ func runMusic(_ logo: LogoController, _ opts: MusicOptions) throws {
             }
         }
         if !dark && Date() >= nextPrint {
-            let b = follower.currentBrightness
-            print(String(format: "  level %.4f  brightness %.0f %%  duty %.1f %%", follower.currentLevel,
-                         LogoController.percent(forBrightness: b), LogoController.dutyPercent(forBrightness: b)))
+            print(String(format: "  level %.4f  brightness %.0f %%", follower.currentLevel, follower.currentPercent))
             nextPrint = Date().addingTimeInterval(1)
         }
     }
@@ -125,22 +118,7 @@ do {
     let logo = try LogoController()
     switch cmd {
     case "status":
-        let s = logo.status()
-        let modeName = [0: "off / app-controlled", 1: "on (not persisted)", 2: "default (follows display)"][s.mode ?? -1] ?? "unknown"
-        print("mode        \(s.mode.map(String.init) ?? "-")  (\(modeName))")
-        if let p = s.pwm {
-            if p.enabled {
-                print(String(format: "pwm         on   %d/%d  duty %.1f %%  (≈ brightness %.0f %%)",
-                             p.highPeriod, p.lowPeriod, p.dutyPercent,
-                             LogoController.percent(forBrightness: LogoController.brightness(forDutyPercent: p.dutyPercent))))
-            } else {
-                print("pwm         off")
-            }
-        }
-        if let le = s.leState {
-            print("macOS LE    display \(fmt(le["DisplayNits"])) nits → logo \(fmt(le["FinalNits"])) nits, lux \(fmt(le["Lux"])), boost ×\(fmt(le["NitsMultiplier"]))")
-        }
-        print("lid         \(s.clamshellClosed.map { $0 ? "closed" : "open" } ?? "-")")
+        print(logo.diagnostics)
     case "default":
         try logo.setDefault()
         print("default: macOS controls the logo again")
@@ -149,10 +127,8 @@ do {
         print("off. Run 'logoctl default' to give the logo back to macOS.")
     case "custom":
         guard args.count == 2, let pct = Double(args[1]), pct >= 0, pct <= 100 else { fail("custom needs a percent 0-100") }
-        let b = LogoController.brightness(forPercent: pct)
-        try logo.setCustom(brightness: b)
-        print(String(format: "custom %.0f %% (duty %.1f %%). Run 'logoctl default' to give the logo back to macOS.",
-                     pct, LogoController.dutyPercent(forBrightness: b)))
+        try logo.setBrightness(percent: pct)
+        print(String(format: "custom %g %%. Run 'logoctl default' to give the logo back to macOS.", pct))
     case "music":
         try runMusic(logo, parseMusic(args))
     default:

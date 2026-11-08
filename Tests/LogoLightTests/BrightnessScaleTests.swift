@@ -1,5 +1,5 @@
 import Testing
-import LogoCore
+@testable import LogoCore
 
 @Test(arguments: [-1.0, 0, 0.3, 1, 5])
 func dutyStaysWithinWhatMacOSUses(brightness: Double) {

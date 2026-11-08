@@ -1,5 +1,6 @@
 import Testing
 import LogoCore
+@testable import LogoMusic
 
 /// Brightness over time for a 120 BPM beat: one loud tick per beat, quiet in between.
 private func play(loudness: Float, maxBrightness: Double, seconds: Double = 6) -> [Double] {

@@ -48,13 +48,13 @@ struct MenuContent: View {
                 }
                 HStack(spacing: 8) {
                     Image(systemName: "sun.min").foregroundStyle(.secondary).accessibilityHidden(true)
-                    Slider(value: $model.brightness, in: AppModel.minBrightness...1)
+                    Slider(value: $model.percent, in: 0...100)
                         .disabled(!model.isSupported)
                         .accessibilityLabel(model.choice == .music ? "Peak brightness" : "Brightness")
-                        .accessibilityValue("\(model.brightnessPercent) percent")
+                        .accessibilityValue("\(Int(model.percent.rounded())) percent")
                     Image(systemName: "sun.max").foregroundStyle(.secondary).accessibilityHidden(true)
                     if model.choice == .custom {
-                        Text("\(model.brightnessPercent) %")
+                        Text("\(Int(model.percent.rounded())) %")
                             .monospacedDigit()
                             .foregroundStyle(.secondary)
                             .frame(width: 44, alignment: .trailing)   // fixed, so the slider doesn't shift

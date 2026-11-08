@@ -49,6 +49,11 @@ measured for loudness, never recorded.
 Quit LogoLight, delete it, and remove it from Login Items if you added it. Optionally:
 `defaults delete io.github.jaxmef.LogoLight`, and turn off its audio permission.
 
+## Use as a Swift library
+
+The logo control is also a library, `LogoCore`, that you can add to your own project with Swift Package Manager.
+See [Sources/LogoCore/README.md](Sources/LogoCore/README.md).
+
 ## Build from source
 
 Needs the Xcode Command Line Tools (`xcode-select --install`) or Xcode, with the macOS 27.2 SDK.
@@ -57,7 +62,7 @@ Needs the Xcode Command Line Tools (`xcode-select --install`) or Xcode, with the
 git clone https://github.com/jaxmef/LogoLight.git
 cd LogoLight
 ./build.sh               # → build/LogoLight.app, build/logoctl
-swift test               # hardware-free tests
+./test.sh                # hardware-free tests
 ```
 
 Running the app or `logoctl` changes the real logo. `build/logoctl default` always hands it back to macOS.
