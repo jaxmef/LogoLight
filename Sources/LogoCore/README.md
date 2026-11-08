@@ -10,7 +10,7 @@ it relies on undocumented macOS interfaces. The API may change between 0.x relea
 ```swift
 // Package.swift
 platforms: [.macOS("27.0")],
-dependencies: [.package(url: "https://github.com/jaxmef/LogoLight", from: "0.2.0")],
+dependencies: [.package(url: "https://github.com/jaxmef/LogoLight", from: "0.2.0")],   // resolves to the latest 0.x
 
 // your target
 dependencies: [.product(name: "LogoCore", package: "LogoLight")],

@@ -7,6 +7,7 @@
 <p align="center">Menu bar control for the glowing Apple logo on the OLED MacBook Pro.</p>
 
 <p align="center">
+  <a href="https://github.com/jaxmef/LogoLight/releases/latest"><img src="https://img.shields.io/github/v/release/jaxmef/LogoLight" alt="Latest release"></a>
   <a href="https://github.com/jaxmef/LogoLight/actions/workflows/ci.yml"><img src="https://github.com/jaxmef/LogoLight/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI"></a>
 </p>
 

@@ -1,9 +1,10 @@
 #!/bin/zsh
 # Builds build/LogoLight.app and build/logoctl.
-# Optional: VERSION (default 0.1.0), BUILD_NUMBER (default 1), SIGN_IDENTITY (default "-" = ad-hoc).
+# Optional: VERSION (default: latest release tag), BUILD_NUMBER (default 1), SIGN_IDENTITY (default "-" = ad-hoc).
 set -eu
 cd "${0:A:h}"
-VERSION="${VERSION:-0.1.0}"
+VERSION="${VERSION:-$(git describe --tags --abbrev=0 --match 'v[0-9]*' 2>/dev/null | sed 's/^v//')}"
+VERSION="${VERSION:-0.0.0}"   # not a git checkout, or no tags fetched
 BUILD_NUMBER="${BUILD_NUMBER:-1}"
 SIGN_IDENTITY="${SIGN_IDENTITY:--}"
 [[ "$VERSION" =~ '^[0-9]+(\.[0-9]+){0,2}$' ]] || { echo "build.sh: VERSION must look like 1.2.3 (got '$VERSION')" >&2; exit 1; }
